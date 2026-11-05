@@ -1,5 +1,5 @@
 const a=require('node:assert/strict'),S=require('./explicit-shortblock.js');let checks=0;const t=f=>{f();checks++;};
-function filled(){const s={bore:86,rod:139,stroke:86,pistonMat:'al2618',pinMat:'s8620',ringCoat:'chrome',sb_ringMat:'gci30',sb_clipMat:'s9254',sb_pistonHeight:60,sb_compressionHeight:32,sb_clearance:.08,sb_crown:6,sb_skirtWall:5,sb_pinOD:20,sb_pinID:12,sb_pinLength:55,sb_ringCount:3,sb_ringTop:6,sb_ringHeight:1.2,sb_ringDepth:2,sb_ringLand:2,sb_ringGap:.4,sb_grooveClearance:.05,sb_pinBoreClearance:.015,sb_bossWall:4,sb_clipWire:1.5,sb_clipInset:2};s.enteredValues={};for(const k of [...S.FIELDS.map(f=>f.key),...S.REQUIRED])s.enteredValues[k]=JSON.stringify(s[k]);return s;}
+function filled(){const s={bore:86,rod:139,stroke:86,pistonMat:'al2618',pinMat:'s8620',ringCoat:'chrome',sb_ringMat:'gci30',sb_clipMat:'s9254',sb_pistonHeight:60,sb_compressionHeight:32,sb_clearance:.08,sb_crown:6,sb_skirtWall:5,sb_pinOD:20,sb_pinID:12,sb_pinLength:55,sb_ringCount:3,sb_ringTop:6,sb_ringHeight:1.2,sb_ringDepth:2,sb_ringLand:2,sb_ringGap:.4,sb_grooveClearance:.05,sb_pinBoreClearance:.015,sb_bossWall:4,sb_clipWire:1.5,sb_clipEndClearance:.2};s.enteredValues={};for(const k of [...S.FIELDS.map(f=>f.key),...S.REQUIRED])s.enteredValues[k]=JSON.stringify(s[k]);return s;}
 t(()=>{const s=filled();a.equal(S.inspect(s).constructionReady,true);a.equal(S.inspect(s).fullEngineReady,false);});
 t(()=>{const s=filled();delete s.enteredValues;a.ok(S.inspect(s).missing.length);a.throws(()=>S.construction(s));});
 t(()=>{const s=filled();s.sb_pinID=22;a.ok(S.inspect(s).errors.some(e=>e.includes('inner diameter')));});
@@ -10,7 +10,7 @@ t(()=>{const s=filled();s.sb_pistonHeight=35;a.ok(S.inspect(s).errors.some(e=>e.
 t(()=>{const s=filled();s.sb_ringTop=30;a.ok(S.inspect(s).errors.some(e=>e.includes('overlaps')));});
 t(()=>{const s=filled();s.sb_ringTop=60;a.ok(S.inspect(s).errors.some(e=>e.includes('past')));});
 t(()=>{const s=filled();s.sb_ringDepth=6;a.ok(S.inspect(s).errors.some(e=>e.includes('wall')));});
-t(()=>{const s=filled();s.sb_pinLength=3;a.ok(S.inspect(s).errors.some(e=>e.includes('clip')));});
+t(()=>{const s=filled();s.sb_clipEndClearance=30;a.ok(S.inspect(s).errors.some(e=>e.includes('clip')));});
 t(()=>{const s=filled();s.rod=43;a.ok(S.inspect(s).errors.some(e=>e.includes('throw')));});
 t(()=>{const s=filled();s.sb_clearance=90;a.ok(S.inspect(s).errors.some(e=>e.includes('positive')));});
 t(()=>{const s=filled();s.sb_crown=null;a.ok(S.inspect(s).missing.length);});
