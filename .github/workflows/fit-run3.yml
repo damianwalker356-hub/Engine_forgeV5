@@ -1,0 +1,49 @@
+name: Pin retention and small-end fit run 3
+on:
+  push:
+    branches: [main]
+    paths: [.github/workflows/fit-run3.yml, small-end-v3.js, integrate-fit-v3.py, test-fit-v3.cjs]
+  workflow_dispatch:
+permissions:
+  contents: write
+  pages: write
+  id-token: write
+concurrency:
+  group: fit-run3
+  cancel-in-progress: false
+jobs:
+  build:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          ref: main
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '20'
+      - name: Check extension and integrate sources
+        run: |
+          node --check small-end-v3.js
+          python integrate-fit-v3.py
+      - name: Run all component regression tests
+        run: |
+          node test-explicit-shortblock.cjs
+          node test-piston-geometry.cjs
+          node test-fit-v3.cjs
+      - name: Save validated update
+        run: |
+          git config user.name 'github-actions[bot]'
+          git config user.email '41898282+github-actions[bot]@users.noreply.github.com'
+          git add index.html piston-geometry.js piston-preview.js explicit-shortblock.js test-piston-geometry.cjs test-explicit-shortblock.cjs
+          if ! git diff --cached --quiet; then
+            git commit -m 'Correct pin clip retention and embed small-end fit prototype'
+            git push origin HEAD:main
+          fi
+      - name: Package site
+        run: |
+          mkdir -p _site
+          cp index.html _site/index.html
+      - uses: actions/upload-pages-artifact@v3
+        with:
+          path: _site
+      - uses: actions/deploy-pages@v4

@@ -1,0 +1,24 @@
+const a=require('node:assert/strict');
+const P=process.env.EF_LOCAL_VERIFY?require('../verify-reference.cjs'):require('./piston-geometry.js');globalThis.EngineForgePistonGeometry=P;
+const E=require('./small-end-v3.js');
+const base={bore:86,sb_clearance:.08,sb_pistonHeight:70,sb_compressionHeight:38,sb_crown:6,sb_skirtWall:5,sb_pinOD:20,sb_pinID:12,sb_pinLength:55,sb_pinBoreClearance:.015,sb_bossWall:4,sb_bossInnerX:20,sb_clipEndClearance:.2,sb_clipWire:1.5,sb_clipGrooveDepth:2,sb_clipGrooveWidth:2,sb_clipMeanRadius:10.5,sb_clipGapDeg:25,sb_ringCount:3,sb_ringTop:6,sb_ringHeight:1.2,sb_ringDepth:2,sb_ringLand:2,sb_ringGap:.4,sb_grooveClearance:.05,sb_ringClock1:0,sb_ringClock2:120,sb_ringClock3:240,se_eyeWidth:39.8,se_eyeOD:32,se_eyeID:24,se_bushOD:24.02,se_bushID:20.02,se_bushWidth:39.8,se_minSide:.1,se_minSupport:5,se_mode:'floating',se_eyeMat:'s4340f',se_bushMat:'bronze'};
+let checks=0;const t=f=>{f();checks++;};const near=(x,y)=>a.ok(Math.abs(x-y)<1e-8,`${x} != ${y}`);
+t(()=>{const r=E.fit(base,'high');near(r.sideClearanceEach,.1);near(r.pinEngagementEach,7.5);near(r.pinRunningClearanceDiametral,.02);near(r.unloadedBushingInterferenceDiametral,.02);near(r.retentionRadialOverlap,.25);a.equal(r.meshClearanceCertified,false);a.equal(r.completeRod,false);a.ok(r.notes.some(x=>x.includes('grid')));});
+t(()=>{const d=P.verify(base);near(d.clipX,28.45);near(d.clipX-base.sb_clipWire/2-base.sb_pinLength/2,.2);});
+t(()=>a.throws(()=>E.fit({...base,se_eyeWidth:40.1})));t(()=>a.throws(()=>E.fit({...base,se_bushWidth:40.1})));
+t(()=>a.throws(()=>E.fit({...base,se_minSide:.2})));t(()=>a.throws(()=>E.fit({...base,se_minSupport:8})));
+t(()=>a.throws(()=>E.fit({...base,se_bushID:19.9})));t(()=>a.throws(()=>E.fit({...base,se_eyeID:33})));
+t(()=>a.throws(()=>E.fit({...base,se_bushID:25})));t(()=>a.throws(()=>E.fit({...base,se_bushOD:35})));
+t(()=>a.throws(()=>E.fit({...base,se_mode:'press-pin'})));t(()=>a.throws(()=>E.fit({...base,se_eyeWidth:NaN})));
+t(()=>a.throws(()=>E.fit({...base,se_eyeWidth:Infinity})));t(()=>a.throws(()=>E.fit({...base,se_eyeWidth:-1})));
+t(()=>a.throws(()=>P.verify({...base,sb_clipMeanRadius:11})));t(()=>a.throws(()=>P.verify({...base,sb_clipMeanRadius:9})));
+t(()=>a.throws(()=>P.verify({...base,sb_clipEndClearance:-.1})));t(()=>{const s={...base,sb_clipEndClearance:0};P.verify(s);near(E.fit(s).clipClearanceEach,0);});
+t(()=>a.ok(E.fit({...base,se_bushOD:23.99}).notes.some(n=>n.includes('loose'))));
+t(()=>a.ok(E.fit({...base,se_bushID:20}).notes.some(n=>n.includes('Zero'))));
+t(()=>a.throws(()=>E.fit(base,'ultra')));t(()=>a.throws(()=>E.fit({...base,se_eyeOD:70})));
+t(()=>{const before=JSON.stringify(base);E.fit(base);a.equal(JSON.stringify(base),before);});
+t(()=>a.ok(E.fields.every(f=>f.key&&f.label&&f.type)));t(()=>a.equal(new Set(E.fields.map(f=>f.key)).size,E.fields.length));
+let seed=11;const rnd=()=>(seed=(seed*1664525+1013904223)>>>0)/4294967296;
+for(let i=0;i<1000;i++)t(()=>{const width=20+rnd()*18,clear=.005+rnd()*.05,report=E.fit({...base,se_eyeWidth:width,se_bushWidth:width,se_bushID:20+clear});a.ok(report.sideClearanceEach>=.1-1e-8);a.ok(report.pinRunningClearanceDiametral>=0);a.ok(report.notes.length>0);});
+if(!process.env.EF_LOCAL_VERIFY){const model=P.build(base,'draft');t(()=>a.equal(model.parts.length,9));const ids=model.parts.map(p=>p.id);t(()=>a.ok(ids.includes('smallEndEye')&&ids.includes('smallEndBushing')));t(()=>a.equal(model.coverage.completeRod,false));t(()=>a.ok(model.parts.every(p=>p.mesh.positions.every(Number.isFinite))));}
+console.log(JSON.stringify({checks,failed:0,mode:process.env.EF_LOCAL_VERIFY?'analytic-verifier-only':'current-kernel-regression'}));
