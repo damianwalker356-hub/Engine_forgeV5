@@ -1,0 +1,51 @@
+name: Cap fastening interfaces run 5
+on:
+  push:
+    branches: [main]
+    paths: [.github/workflows/cap-run5.yml, cap-joint-v5.js, integrate-cap-v5.py, test-cap-joint-v5.cjs]
+  workflow_dispatch:
+permissions:
+  contents: write
+  pages: write
+  id-token: write
+concurrency:
+  group: cap-run5
+  cancel-in-progress: false
+jobs:
+  build:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          ref: main
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '20'
+      - name: Check and integrate cap interfaces
+        run: |
+          node --check cap-joint-v5.js
+          python integrate-cap-v5.py
+      - name: Run component regressions
+        run: |
+          node test-explicit-shortblock.cjs
+          node test-piston-geometry.cjs
+          node test-fit-v3.cjs
+          node test-rod-v4.cjs
+          node test-cap-joint-v5.cjs
+      - name: Save validated simulator
+        run: |
+          git config user.name 'github-actions[bot]'
+          git config user.email '41898282+github-actions[bot]@users.noreply.github.com'
+          git add index.html rod-v4.js piston-preview.js
+          if ! git diff --cached --quiet; then
+            git commit -m 'Embed cap supporting pads holes and unthreaded fastener envelopes'
+            git push origin HEAD:main
+          fi
+      - name: Package site
+        run: |
+          mkdir -p _site
+          cp index.html _site/index.html
+      - uses: actions/upload-pages-artifact@v3
+        with:
+          path: _site
+      - uses: actions/deploy-pages@v4
