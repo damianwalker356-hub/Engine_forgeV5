@@ -1,0 +1,37 @@
+name: Placement and bend controls
+on:
+  push:
+    branches: [main]
+    paths: [.github/workflows/placement-v2.yml, placement-v2.js, integrate-placement.py]
+  workflow_dispatch:
+permissions:
+  contents: write
+concurrency:
+  group: placement-v2
+  cancel-in-progress: false
+jobs:
+  update:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          ref: main
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '20'
+      - uses: actions/setup-python@v5
+        with:
+          python-version: '3.12'
+      - name: Check new controls
+        run: node --check placement-v2.js
+      - name: Integrate into simulator
+        run: python integrate-placement.py index.html placement-v2.js
+      - name: Commit updated simulator
+        run: |
+          git config user.name 'github-actions[bot]'
+          git config user.email '41898282+github-actions[bot]@users.noreply.github.com'
+          git add index.html
+          if ! git diff --cached --quiet; then
+            git commit -m 'Add placement sliders and bend controls to the engine builder'
+            git push origin HEAD:main
+          fi
