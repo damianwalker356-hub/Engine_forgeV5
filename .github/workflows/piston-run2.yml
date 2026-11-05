@@ -1,0 +1,68 @@
+name: Piston geometry prototype run 2
+on:
+  push:
+    branches: [main]
+    paths: [.github/workflows/piston-run2.yml, piston-geometry.js, piston-preview.js, test-piston-geometry.cjs]
+  workflow_dispatch:
+permissions:
+  contents: write
+  pages: write
+  id-token: write
+concurrency:
+  group: piston-run2
+  cancel-in-progress: false
+jobs:
+  build:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          ref: main
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '20'
+      - name: Check component meshes
+        run: |
+          node --check piston-geometry.js
+          node --check piston-preview.js
+          node test-piston-geometry.cjs
+      - name: Integrate piston-only preview
+        shell: python
+        run: |
+          from pathlib import Path
+          import json,re,subprocess,tempfile
+          p=Path('index.html');html=p.read_text()
+          if 'EF_EXPLICIT_RUN1' not in html:raise ValueError('Run 1 must be integrated first')
+          if '<!-- EF_PISTON_RUN2 -->' not in html:
+              main='__M["main"] = (function () {'
+              boot='window.EngineForgeExplicit.install(__M,state);'
+              if html.count(main)!=1 or html.count(boot)!=1:raise ValueError('Integration anchors missing or ambiguous')
+              kernel=Path('piston-geometry.js').read_text()
+              ui=Path('piston-preview.js').read_text()
+              code=kernel+'\nwindow.EFPistonKernelSource='+json.dumps(kernel)+';\n'+ui+'\n'
+              html=html.replace(main,code+main,1)
+              html=html.replace(boot,boot+'\nwindow.EngineForgePistonPreview.install(__M,state);',1)
+              html=html.replace('</head>','<!-- EF_PISTON_RUN2 -->\n</head>',1)
+          scripts=re.findall(r'<script\b[^>]*>([\s\S]*?)</script\s*>',html,re.I)
+          if not scripts:raise ValueError('No inline scripts')
+          with tempfile.TemporaryDirectory() as d:
+              for i,s in enumerate(scripts):
+                  f=Path(d)/f'check-{i}.js';f.write_text(s);subprocess.run(['node','--check',str(f)],check=True)
+          p.write_text(html)
+      - name: Save integrated HTML
+        run: |
+          git config user.name 'github-actions[bot]'
+          git config user.email '41898282+github-actions[bot]@users.noreply.github.com'
+          git add index.html
+          if ! git diff --cached --quiet; then
+            git commit -m 'Embed explicit piston-only mesh preview; keep full-engine gate'
+            git push origin HEAD:main
+          fi
+      - name: Package site
+        run: |
+          mkdir -p _site
+          cp index.html _site/index.html
+      - uses: actions/upload-pages-artifact@v3
+        with:
+          path: _site
+      - uses: actions/deploy-pages@v4
