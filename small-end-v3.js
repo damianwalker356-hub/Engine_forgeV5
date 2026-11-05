@@ -26,7 +26,7 @@ function fit(s,quality='draft'){
  if(minFeature<2*step)notes.push('Some solid features are narrower than two mesh cells and may not be resolved.');
  const pinRadial=s.sb_pinBoreClearance/2;
  if(step>=pinRadial)notes.push('Piston mesh grid is larger than pin radial clearance; rendered pin-to-piston clearance is unverified.');
- notes.push('Rod beam, big-end, bolts, oilways, loaded deformation, lubrication and full-cycle collision checks remain incomplete.');
+ notes.push('Small-end fit alone does not certify the rod; loaded deformation, lubrication and full-cycle collision checks remain incomplete.');
  return{mode:'floating',pinRunningClearanceDiametral:running,pinToPistonClearanceDiametral:s.sb_pinBoreClearance,sideClearanceEach:side,pinEngagementEach:support,unloadedBushingInterferenceDiametral:press,clipClearanceEach:s.sb_clipEndClearance,retentionRadialOverlap:s.sb_pinOD/2-(s.sb_clipMeanRadius-s.sb_clipWire/2),gridStep:step,minimumSolidFeature:minFeature,installedPressFitSolved:false,meshClearanceCertified:false,completeRod:false,notes};
 }
 function attach(){const P=G.EngineForgePistonGeometry;if(!P||P.smallEndAttached)return;P.smallEndAttached=true;const original=P.build;
